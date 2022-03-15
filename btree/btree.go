@@ -129,7 +129,7 @@ func (t *Btree) Insert (key int, value int) {
 		// split child if child node is full
 		if t.maxDegree == child.degree {
 			node.splitChildAt(i, t)
-			// update i the point to the right child of moved up node
+			// update i the point to the right child of moved up key
 			if key > node.entries[i].key {
 				i++
 			}
@@ -170,7 +170,7 @@ func (n *btreeNode) splitChildAt(idx int, btree *Btree) {
  *
  * Traval down the tree deleting the key in the tree,
  * and merge each node down the path with their sibling
- * when the merged node is not full
+ * if this merged node is not full
  */
 func (t *Btree) Delete (key int) bool {
 	if t.root == nil {
@@ -195,17 +195,16 @@ func (t *Btree) Delete (key int) bool {
 
 		if found {
 			/*
-			 * Cases of found the deletion key belongs to a internal node
+			 * Cases of found the deletion key belongs to internal node
 			 *
-			 * 1. when child nodes can be merged, which the keys of merged node
+			 * 1. when child nodes can be merged, which the keys of this merged node
 			 * are not greater than btree.maxDegree - 1, then break the loop.
-			 * 2. otherwise replace deleted key with the last key in left node, and recursive delete the replacement key.
-			   (use left child can save memory copying, cause the replacement key is at the end of left child keys list)
+			 * 2. otherwise replace deleted key with the predecessor or successor,
+			 * depending on which child is not the minimum degree node, and recursive delete the replacement key.
 			 */
 			left := node.entries[i].node
 			right := node.entries[i+1].node
 
-			// TODO: explain t.maxDegree+1
 			if left.degree + right.degree <= t.maxDegree+1 {
 				node.mergeChildAt(i, false)
 				break
@@ -225,6 +224,15 @@ func (t *Btree) Delete (key int) bool {
 				key = successor.key
 			}
 		} else if node.entries[i].node.degree == t.minDegree {
+			/*
+			 * Cases of key is not present in internal node and
+			 * the child which on the path the key should present is minimum node
+			 *
+			 * 1. if immediate sibling of child is minimum node, merge child and this sibling
+			 * with the key of current node
+			 * 2. otherwise move a key from current node down into child, and move a key from
+			 * immediate sibling of child up into current node
+			 */
 			var child, sibling *btreeNode
 
 			isLastChild := i == node.degree-1
@@ -236,10 +244,8 @@ func (t *Btree) Delete (key int) bool {
 				sibling = node.entries[i+1].node
 			}
 
-			// TODO: need explain
-			// merge nodes
 			if sibling.degree == t.minDegree {
-				// TODO: need explain
+				// back to the entry that contains the last key
 				if isLastChild {
 					i--
 				}
@@ -247,9 +253,7 @@ func (t *Btree) Delete (key int) bool {
 				// update child
 				child = node.entries[i].node
 			} else if isLastChild {
-				// TODO: need explain
-				i--
-				node.moveChildKey(i, false)
+				node.moveChildKey(i-1, false)
 			} else {
 				node.moveChildKey(i, true)
 			}
@@ -261,7 +265,7 @@ func (t *Btree) Delete (key int) bool {
 	}
 
 
-	// if root is empty, assign a new root
+	// when root is empty after deletion process, assign the only child of root as the new root
 	// this is the only way to decrease the height of tree
 	if t.root.degree == 1 {
 		t.root = t.root.entries[0].node
@@ -280,12 +284,11 @@ func (n *btreeNode) mergeChildAt(i int, includeParentKey bool) {
 		left.degree++
 	}
 
-	// append right entries to left to eliminate additional memory copy
+	// append right entries to left
 	copy(left.entries[left.degree-1:], right.entries[0:right.degree])
 	left.degree += (right.degree-1)
 
-	// TODO: better explaination
-	// assign all entries to right, becuase left child will be merged into right
+	// right child is the merged node, left child pointer will lost after this merge process
 	right.degree = left.degree
 	right.entries = left.entries
 

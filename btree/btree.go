@@ -1,6 +1,7 @@
 package btree
 
-// TODO: check all the comments make sure they are clear
+// TODO: support 2-3 tree
+// TODO: wrapper method to get left and right child at node key
 
 // a Btree handle, and non of it`s fields are exported
 type Btree struct {
@@ -197,17 +198,17 @@ func (t *Btree) Delete (key int) bool {
 			/*
 			 * Cases of found the deletion key belongs to internal node
 			 *
-			 * 1. when child nodes can be merged, which the keys of this merged node
-			 * are not greater than btree.maxDegree - 1, then break the loop.
+			 * 1. when child nodes are both min degree node, mrege key and child nodes,
+			 * and recursive delete the key in the merged node
 			 * 2. otherwise replace deleted key with the predecessor or successor,
 			 * depending on which child is not the minimum degree node, and recursive delete the replacement key.
 			 */
 			left := node.entries[i].node
 			right := node.entries[i+1].node
 
-			if left.degree + right.degree <= t.maxDegree+1 {
-				node.mergeChildAt(i, false)
-				break
+			// TODO: is this right to delete node[i] directly
+			if left.degree == t.minDegree && right.degree == t.minDegree {
+				node = node.mergeChildAt(i)
 			} else if left.degree > t.minDegree {
 				predecessor := left.entries[left.degree-2]
 				node.entries[i].key = predecessor.key
@@ -249,9 +250,7 @@ func (t *Btree) Delete (key int) bool {
 				if isLastChild {
 					i--
 				}
-				node.mergeChildAt(i, true)
-				// update child
-				child = node.entries[i].node
+				child = node.mergeChildAt(i)
 			} else if isLastChild {
 				node.moveChildKey(i-1, false)
 			} else {
@@ -274,15 +273,17 @@ func (t *Btree) Delete (key int) bool {
 	return result
 }
 
-func (n *btreeNode) mergeChildAt(i int, includeParentKey bool) {
+/**
+ * merge key at i and keys of left child into right child
+ * return merged node
+ */
+func (n *btreeNode) mergeChildAt(i int) *btreeNode {
 	left := n.entries[i].node
 	right := n.entries[i+1].node
-	if includeParentKey {
-		lastEntry := left.entries[left.degree-1]
-		lastEntry.key = n.entries[i].key
-		lastEntry.value = n.entries[i].value
-		left.degree++
-	}
+	lastEntry := left.entries[left.degree-1]
+	lastEntry.key = n.entries[i].key
+	lastEntry.value = n.entries[i].value
+	left.degree++
 
 	// append right entries to left
 	copy(left.entries[left.degree-1:], right.entries[0:right.degree])
@@ -293,6 +294,8 @@ func (n *btreeNode) mergeChildAt(i int, includeParentKey bool) {
 	right.entries = left.entries
 
 	n.deleteKeyAt(i)
+
+	return right
 }
 
 func (n *btreeNode) moveChildKey(i int, moveToLeft bool) {

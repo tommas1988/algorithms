@@ -2,7 +2,7 @@ package red_black_tree
 
 type color int
 const (
-	red color iota
+	red color = iota
 	black
 )
 
@@ -20,10 +20,11 @@ type node struct {
 	color color
 }
 
+// TODO: need a argument to setup top-down or bottom-up algrithm
 func New() *RedBlackTree {
 	return &RedBlackTree{
 		nilNode: &node{
-			color: black
+			color: black,
 		}}
 }
 
@@ -46,58 +47,61 @@ func (rbtree *RedBlackTree) Search(key int) (int, bool) {
 // Top-down algorithm
 func (rbtree *RedBlackTree) Insert(key int, value int) {
 	if rbtree.root == nil {
-		root := &node{
-			key: key,
-			value: value,
-			color: black,
-		}
-		// make root as child of nil node
-		rbtree.nilNode.left = rbtree.nilNode.left = root
-		rbtree.root = root
+		root := &node{key, value, rbtree.nilNode, rbtree.nilNode, black}
 
+		// make root as child of nil node
+		rbtree.nilNode.left = root
+		rbtree.root = root
 		return
 	}
 
 	// declare parent, grandparent and greate grandparent node
 	// that will use in rebalance process
-	var p, gp, ggp *node
+	var currNode, p, gp, ggp *node
+	currNode = rbtree.root
 	p = rbtree.nilNode
-	node := rbtree.root
-	for node != rbtree.nilNode {
+	for currNode != rbtree.nilNode {
 		// update
-		if key == node.key {
-			node.value = value
+		if key == currNode.key {
+			currNode.value = value
 			return
 		}
 
-		if node.left.color == red || node.right.color == red {
+		if currNode.left.color == red && currNode.right.color == red {
 			// TODO: expaine why gp and ggp get value when process node split
 
 			// split full node
-			node.color = red
-			node.left.color = node.right.color = black
+			currNode.color = red
+			currNode.left.color = black
+			currNode.right.color = black
 
-			if p.color = red {
-				gp, p, node = rebalance(ggp, gp, p, node)
+			if p.color == red {
+				gp, p, currNode = rebalance(ggp, gp, p, currNode)
 			}
 		}
 
-		ggp, gp, p = gp, p, node
-		node = key < node.key ? node.left : node.right
+		ggp, gp, p = gp, p, currNode
+		if key < currNode.key {
+			currNode = currNode.left
+		} else {
+			currNode = currNode.right
+		}
 	}
 
 	// TODO: why insert red node
-	node = &node{key, value, rbtree.nilNode, rbtree.nilNode, red}
+	currNode = &node{key, value, rbtree.nilNode, rbtree.nilNode, red}
 	if key < p.key {
-		p.left = node
+		p.left = currNode
 	} else {
-		p.right = node
+		p.right = currNode
 	}
 
 	if p.color == red {
-		rebalance(ggp, gp, p, node)
+		rebalance(ggp, gp, p, currNode)
 	}
 
+	// reset root and it`s color
+	rbtree.root = rbtree.nilNode.left
 	rbtree.root.color = black
 }
 
@@ -108,31 +112,31 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 	}
 
 	var (
-		node *node,
-		p *node,
+		currNode *node
+		p *node
 		gp *node
 	)
-	var deleteNode *node = nil
+	var deletedNode *node = nil
 
 	if rbtree.root.key == key {
 		deletedNode = rbtree.root
 		// find preprocessor
-		node = root.left
+		currNode = rbtree.root.left
 	} else if rbtree.root.key < key {
-		node = root.left
+		currNode = rbtree.root.left
 	} else {
-		node = root.right
+		currNode = rbtree.root.right
 	}
 	p = rbtree.root
 	gp = rbtree.nilNode
 
-	for node != rbtree.nilNode {
-		if node.color == black &&
-			node.left.color == black &&
-			node.right.color == black {
+	for currNode != rbtree.nilNode {
+		if currNode.color == black &&
+			currNode.left.color == black &&
+			currNode.right.color == black {
 			// minimum node, merge with parent or sibling
 			var sibling *node
-			if p.left == node {
+			if p.left == currNode {
 				sibling = p.right
 				if sibling.color == red {
 					// sibling is in up level, refind the same level sibling
@@ -145,7 +149,8 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 				} else if sibling.left.color == black && sibling.right.color == black {
 					// sibling is also a minimum node, merge them with parent
 					p.color = black
-					node.color = sibling.color = red
+					currNode.color = red
+					sibling.color = red
 				} else {
 					// sibling is 3 degree node, move up a node to parent and merge with old parent
 					if sibling.right.color == black {
@@ -155,14 +160,14 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 					}
 
 					if gp.left == p {
-						gp.left == leftRotate(p)
+						gp.left = leftRotate(p)
 					} else {
-						gp.right == leftRotate(p)
+						gp.right = leftRotate(p)
 					}
-					node.color = red
+					currNode.color = red
 				}
 			} else {
-				sbiling = p.left
+				sibling = p.left
 				if sibling.color == red {
 					if gp.left == p {
 						gp.left = rightRotate(p)
@@ -172,7 +177,8 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 					continue
 				} else if sibling.left.color == black && sibling.right.color == black {
 					p.color = black
-					node.color = sibling.color = red
+					currNode.color = red
+					sibling.color = red
 				} else {
 					if sibling.left.color == black {
 						p.left = leftRotate(sibling)
@@ -185,46 +191,46 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 					} else {
 						gp.right = rightRotate(p)
 					}
-					node.color = red
+					currNode.color = red
 				}
 			}
 		}
 
 		gp = p
-		p = node
-		if node.key == key {
-			deleteNode = node
+		p = currNode
+		if currNode.key == key {
+			deletedNode = currNode
 			// find preprocessor
-			node = node.left
-		} else if deleteNode != nil {
+			currNode = currNode.left
+		} else if deletedNode != nil {
 			// find preprocessor
-			if node.right = rbtree.nilNode {
+			if currNode.right == rbtree.nilNode {
 				break
 			}
-			node = node.right
-		} else if (key < node.key) {
-			node = node.left
+			currNode = currNode.right
+		} else if (key < currNode.key) {
+			currNode = currNode.left
 		} else {
-			node = node.right
+			currNode = currNode.right
 		}
 
 	}
 
-	if deleteNode == nil {
+	if deletedNode == nil {
 		return false
 	}
 
-	deleteNode.key = node.key
-	deleteNode.value = node.value
-	if parent.right = node {
-		panret.right = rbtree.nilNode
+	deletedNode.key = currNode.key
+	deletedNode.value = currNode.value
+	if p.right == currNode {
+		p.right = rbtree.nilNode
 	} else {
-		parent.left = rbtree.nilNode
+		p.left = rbtree.nilNode
 	}
 	return true
 }
 
-func rebalance(ggp, gp, p, c *node) (gp, p, c *node) {
+func rebalance(ggp, gp, p, c *node) (_gp, _p, _c *node) {
 	if gp.left == p {
 		if p.right == c {
 			gp.left = leftRotate(p)
@@ -238,7 +244,7 @@ func rebalance(ggp, gp, p, c *node) (gp, p, c *node) {
 		} else {
 			ggp.right = rightRotate(gp)
 		}
-		gp = ggp
+		_gp, _p, _c = ggp, p, c
 	} else {
 		if p.left == c {
 			gp.right = rightRotate(p)
@@ -247,15 +253,15 @@ func rebalance(ggp, gp, p, c *node) (gp, p, c *node) {
 
 		gp.color = red
 		p.color = black
-		if (ggp.left = gp) {
+		if (ggp.left == gp) {
 			ggp.left = leftRotate(gp)
 		} else {
 			ggp.right = leftRotate(gp)
 		}
-		gp = ggp
+		_gp, _p, _c = ggp, p, c
 	}
 
-	return gp, p, c
+	return _gp, _p, _c
 }
 
 /**

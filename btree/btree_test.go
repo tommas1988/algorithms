@@ -4,7 +4,7 @@ import "testing"
 
 func TestInsertion(t *testing.T) {
 	var tests = []struct {
-		key rune
+		key      rune
 		expected [][][]rune
 	}{
 		{'F', [][][]rune{
@@ -101,7 +101,7 @@ func TestInsertion(t *testing.T) {
 		}},
 	}
 
-	btree := New(2)
+	btree := New(2, TopDown)
 	for _, test := range tests {
 		btree.Insert(int(test.key), int(test.key))
 
@@ -117,8 +117,8 @@ func TestDeletion(t *testing.T) {
 	keys := []rune{'D', 'E', 'G', 'J', 'K', 'M', 'N', 'O', 'P', 'R', 'S', 'X',
 		'Y', 'Z', 'T', 'A', 'C', 'U', 'V', 'B', 'Q', 'L', 'F'}
 
-	var tests = []struct{
-		key rune
+	var tests = []struct {
+		key      rune
 		expected [][][]rune
 	}{
 		{'S', [][][]rune{
@@ -150,7 +150,7 @@ func TestDeletion(t *testing.T) {
 		}},
 	}
 
-	btree := New(3)
+	btree := New(3, TopDown)
 	for _, key := range keys {
 		btree.Insert(int(key), int(key))
 	}
@@ -170,7 +170,7 @@ func TestDeletion(t *testing.T) {
 
 func convertBtreeToKeyArray(btree *Btree) [][][]rune {
 	var context = struct {
-		nodes [2][]*btreeNode
+		nodes         [2][]*btreeNode
 		current, next int
 	}{
 		[2][]*btreeNode{

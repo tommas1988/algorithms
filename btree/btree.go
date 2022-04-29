@@ -28,6 +28,7 @@ type entry struct {
 	node  *btreeNode
 }
 
+// TODO: use a cycle to store entries
 type btreeNode struct {
 	degree  int // degree of btree node
 	entries []entry
@@ -83,10 +84,21 @@ func (t *Btree) newNode() *btreeNode {
 	return &btreeNode{degree: 0, entries: make([]entry, t.maxDegree)}
 }
 
-// return entry index that the key is equal to entry.key
-// or the smallest entry.key that greater than key
-// or the last entry index, which key is greater than all keys in entries
+// return left child node of entry at i
+func (node *btreeNode) left(i int) *btreeNode {
+	return node.entries[i].node
+}
+
+// return left child node of this entry
+func (node *btreeNode) right(i int) *btreeNode {
+	return node.entries[i+1].node
+}
+
+// return index of entry which the entry.key is equal to the search key,
+// or the entry.key is smallest but greater than the search key,
+// or the last entry index when search key is greater than all the keys in this node
 func (n *btreeNode) findKey(key int) (int, bool) {
+	// set initial key index range
 	i, j := 0, n.degree-2
 	for i <= j {
 		m := i + (j-i)/2
@@ -101,7 +113,6 @@ func (n *btreeNode) findKey(key int) (int, bool) {
 			j = m - 1
 		}
 	}
-
 	return i, false
 }
 

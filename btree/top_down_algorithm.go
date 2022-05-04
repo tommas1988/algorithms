@@ -11,8 +11,8 @@ func topDownInsertHandler(t *Btree, key int, value int) {
 	// empty tree
 	if t.root == nil {
 		root := t.newNode()
-		root.entries[0].key = key
-		root.entries[0].value = value
+		root.setKey(0, key)
+		root.setValue(0, value)
 		root.degree = 2
 		root.leaf = true
 		t.root = root
@@ -24,41 +24,47 @@ func topDownInsertHandler(t *Btree, key int, value int) {
 	if t.maxDegree == t.root.degree {
 		newRoot := t.newNode()
 		newRoot.degree = 1
-		newRoot.entries[0].node = t.root
-		newRoot.splitChildAt(0, t)
-
+		key, value, left, right := t.root.split(t)
+		newRoot.addKey(0, key, value, left, right)
 		t.root = newRoot
 	}
 
 	node := t.root
 	for true {
-		i, ok := node.findKey(key)
-		if ok {
+		i, found := node.findKey(key)
+		if found {
 			// update value
-			node.entries[i].value = value
+			node.setValue(i, value)
 			return
 		}
 
 		if node.leaf {
-			for j := node.degree - 1; j >= i; j-- {
-				node.entries[j+1] = node.entries[j]
+			if key < node.key(i) {
+				node.addKey(i, key, value, nil, nil)
+			} else {
+				node.addKey(i+1, key, value, nil, nil)
 			}
-			node.entries[i].key = key
-			node.entries[i].value = value
-			node.entries[i].node = nil
-			node.degree++
+
 			return
 		}
 
-		child := node.entries[i].node
+		var child *btreeNode
+		if key < node.key(i) {
+			child = node.left(i)
+		} else {
+			child = node.right(i)
+			i++ // increment i for add key process when child is full
+		}
+
 		// split child if child node is full
 		if t.maxDegree == child.degree {
-			node.splitChildAt(i, t)
-			// update i the point to the right child of moved up key
-			if key > node.entries[i].key {
-				i++
+			k, v, l, r := child.split(t)
+			node.addKey(i, k, v, l, r)
+			if key < node.key(i) {
+				node = node.left(i)
+			} else {
+				node = node.right(i)
 			}
-			node = node.entries[i].node
 		} else {
 			node = child
 		}
@@ -77,96 +83,83 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		return false
 	}
 
+	deleteNode := struct {
+		node  *btreeNode
+		index int
+	}{}
 	node := t.root
-	result := false
 	for true {
-		i, found := node.findKey(key)
-		result = found
+		var i int
+		var found bool
+		if deleteNode.node != nil {
+			i = node.degree - 2
+			found = true
+		} else {
+			i, found = node.findKey(key)
+		}
 
-		// cause current node is guaranteed to have one more key
+		// Since current leaf node is guaranteed to have one more key
 		// than the minimum degree node, it`s safe to delete the key
-		// or break the loop when the key is not in the tree
+		// or just break the loop when the key is not in the tree
 		if node.leaf {
+			if deleteNode.node != nil {
+				deleteNode.node.setKey(deleteNode.index, node.key(i))
+				deleteNode.node.setValue(deleteNode.index, node.value(i))
+			}
+
 			if found {
-				node.deleteKeyAt(i)
+				node.deleteKey(i)
 			}
 			break
 		}
 
-		if found {
-			/*
-			 * Cases of found the deletion key belongs to internal node
-			 *
-			 * 1. when child nodes are both min degree node, mrege key and child nodes,
-			 * and recursive delete the key in the merged node
-			 * 2. otherwise replace deleted key with the predecessor or successor,
-			 * depending on which child is not the minimum degree node, and recursive delete the replacement key.
-			 */
-			left := node.entries[i].node
-			right := node.entries[i+1].node
+		left := node.left(i)
+		right := node.right(i)
 
-			// TODO: is this right to delete node[i] directly
-			if left.degree == t.minDegree && right.degree == t.minDegree {
-				node = node.mergeChildAt(i)
-			} else if left.degree > t.minDegree {
-				predecessor := left.entries[left.degree-2]
-				node.entries[i].key = predecessor.key
-				node.entries[i].value = predecessor.value
-
-				node = left
-				key = predecessor.key
-			} else {
-				successor := right.entries[0]
-				node.entries[i].key = successor.key
-				node.entries[i].value = successor.value
-
-				node = right
-				key = successor.key
-			}
-		} else if node.entries[i].node.degree == t.minDegree {
-			/*
-			 * Cases of key is not present in internal node and
-			 * the child which on the path the key should present is minimum node
-			 *
-			 * 1. if immediate sibling of child is minimum node, merge child and this sibling
-			 * with the key of current node
-			 * 2. otherwise move a key from current node down into child, and move a key from
-			 * immediate sibling of child up into current node
-			 */
-			var child, sibling *btreeNode
-
-			isLastChild := i == node.degree-1
-			child = node.entries[i].node
-
-			if isLastChild {
-				sibling = node.entries[i-1].node
-			} else {
-				sibling = node.entries[i+1].node
-			}
-
-			if sibling.degree == t.minDegree {
-				// back to the entry that contains the last key
-				if isLastChild {
-					i--
-				}
-				child = node.mergeChildAt(i)
-			} else if isLastChild {
-				node.moveChildKey(i-1, false)
-			} else {
-				node.moveChildKey(i, true)
-			}
-
-			node = child
-		} else {
-			node = node.entries[i].node
+		if left.degree == t.minDegree && right.degree == t.minDegree {
+			node = node.mergeChild(i)
+			continue
 		}
+
+		var child *btreeNode
+		if deleteNode.node != nil || found {
+			// preprocessor
+			child = left
+
+			if found {
+				deleteNode.node = node
+				deleteNode.index = i
+			}
+		} else if key < node.key(i) {
+			child = left
+		} else {
+			child = right
+		}
+
+		if child.degree == t.minDegree {
+			// replace key from sibling with key at i of node, and merge replaced key into child node
+			if child == left {
+				child.appendKey(node.key(i), node.value(i), right.left(0))
+				node.setKey(i, right.key(i))
+				node.setValue(i, right.value(i))
+				right.deleteKey(0)
+			} else {
+				lastKeyIndex := left.degree - 2
+				child.addKey(0, node.key(i), node.value(i), left.right(lastKeyIndex), node.left(0))
+				node.setKey(i, left.key(lastKeyIndex))
+				node.setValue(i, left.value(lastKeyIndex))
+				left.deleteKey(lastKeyIndex)
+			}
+		}
+
+		node = child
 	}
 
 	// when root is empty after deletion process, assign the only child of root as the new root
 	// this is the only way to decrease the height of tree
 	if t.root.degree == 1 {
-		t.root = t.root.entries[0].node
+		t.root = t.root.left(0)
 	}
 
-	return result
+	return deleteNode.node != nil
 }

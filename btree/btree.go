@@ -84,19 +84,11 @@ func (t *Btree) newNode() *btreeNode {
 	return &btreeNode{degree: 0, entries: make([]entry, t.maxDegree)}
 }
 
-// return left child node of entry at i
-func (node *btreeNode) left(i int) *btreeNode {
-	return node.entries[i].node
-}
-
-// return left child node of this entry
-func (node *btreeNode) right(i int) *btreeNode {
-	return node.entries[i+1].node
-}
-
-// return index of entry which the entry.key is equal to the search key,
-// or the entry.key is smallest but greater than the search key,
-// or the last entry index when search key is greater than all the keys in this node
+/**
+ * return index of entry which entry.key is equal to the search key,
+ * or of entry that entry.key is smallest but greater than the search key,
+ * or of last entry that contains key when search key is greater than all the keys in this node
+ */
 func (n *btreeNode) findKey(key int) (int, bool) {
 	// set initial key index range
 	i, j := 0, n.degree-2
@@ -113,41 +105,87 @@ func (n *btreeNode) findKey(key int) (int, bool) {
 			j = m - 1
 		}
 	}
+
+	if i == n.degree-1 {
+		i = i - 1
+	}
+
 	return i, false
 }
 
-func (n *btreeNode) splitChildAt(idx int, btree *Btree) {
-	child := n.entries[idx].node
-	// split child at the median key position
-	median := child.entries[btree.minDegree-1]
+func (n *btreeNode) key(i int) int {
+	return n.entries[i].key
+}
 
-	left := child
+func (n *btreeNode) value(i int) int {
+	return n.entries[i].value
+}
+
+func (n *btreeNode) setKey(i int, key int) {
+	n.entries[i].key = key
+}
+
+func (n *btreeNode) setValue(i int, value int) {
+	n.entries[i].value = value
+}
+
+func (n *btreeNode) left(i int) *btreeNode {
+	return n.entries[i].node
+}
+
+func (n *btreeNode) right(i int) *btreeNode {
+	return n.entries[i+1].node
+}
+
+func (n *btreeNode) addKey(idx int, key int, value int, left *btreeNode, right *btreeNode) {
+	// make a room for added entry
+	for i := n.degree - 1; i >= idx; i-- {
+		n.entries[i+1] = n.entries[i]
+	}
+	n.entries[idx].key = key
+	n.entries[idx].value = value
+	n.entries[idx].node = left
+	n.degree++
+
+	n.entries[idx+1].node = right
+}
+
+func (n *btreeNode) appendKey(key int, value int, right *btreeNode) {
+	i := n.degree - 1
+	n.entries[i].key = key
+	n.entries[i].value = value
+	n.entries[i+1].node = right
+	n.degree++
+}
+
+func (n *btreeNode) deleteKey(i int) {
+	copy(n.entries[i:n.degree], n.entries[i+1:n.degree])
+	n.degree--
+}
+
+func (n *btreeNode) split(btree *Btree) (key int, value int, left *btreeNode, right *btreeNode) {
+	// Entry that split child entries. And being merged up into current node
+	splitEntry := n.entries[btree.minDegree-1]
+
+	left = n
 	left.degree = btree.minDegree
 
-	right := btree.newNode()
-	right.leaf = child.leaf
+	right = btree.newNode()
+	right.leaf = n.leaf
 	right.degree = btree.minDegree
 
 	copy(right.entries, left.entries[btree.minDegree:])
 
-	// move the median key up to the parent
-	for i := n.degree - 1; i >= idx; i-- {
-		n.entries[i+1] = n.entries[i]
-	}
-	// new entry for the move up key
-	n.entries[idx] = entry{key: median.key, value: median.value, node: left}
-	// update next entry to point the new created child node
-	n.entries[idx+1].node = right
-	n.degree++
+	return splitEntry.key, splitEntry.value, left, right
 }
 
 /**
  * merge key at i and keys of left child into right child
  * return merged node
  */
-func (n *btreeNode) mergeChildAt(i int) *btreeNode {
-	left := n.entries[i].node
-	right := n.entries[i+1].node
+func (n *btreeNode) mergeChild(i int) *btreeNode {
+	left := n.left(i)
+	right := n.right(i)
 	lastEntry := left.entries[left.degree-1]
 	lastEntry.key = n.entries[i].key
 	lastEntry.value = n.entries[i].value
@@ -161,43 +199,7 @@ func (n *btreeNode) mergeChildAt(i int) *btreeNode {
 	right.degree = left.degree
 	right.entries = left.entries
 
-	n.deleteKeyAt(i)
+	n.deleteKey(i)
 
 	return right
-}
-
-func (n *btreeNode) moveChildKey(i int, moveToLeft bool) {
-	if moveToLeft {
-		child := n.entries[i].node
-		sibling := n.entries[i+1].node
-		child.entries[child.degree-1].key = n.entries[i].key
-		child.entries[child.degree-1].value = n.entries[i].value
-		child.entries[child.degree].node = sibling.entries[0].node
-		child.degree++
-
-		n.entries[i].key = sibling.entries[0].key
-		n.entries[i].value = sibling.entries[0].value
-
-		sibling.deleteKeyAt(0)
-	} else {
-		child := n.entries[i+1].node
-		sibling := n.entries[i].node
-		for i := child.degree - 1; i >= 0; i-- {
-			child.entries[i+1] = child.entries[i]
-		}
-		child.entries[0].key = n.entries[i].key
-		child.entries[0].value = n.entries[i].value
-		child.entries[0].node = sibling.entries[sibling.degree-1].node
-		child.degree++
-
-		n.entries[i].key = sibling.entries[sibling.degree-2].key
-		n.entries[i].value = sibling.entries[sibling.degree-2].value
-
-		sibling.degree--
-	}
-}
-
-func (n *btreeNode) deleteKeyAt(i int) {
-	copy(n.entries[i:n.degree], n.entries[i+1:n.degree])
-	n.degree--
 }

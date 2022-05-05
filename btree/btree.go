@@ -1,7 +1,6 @@
 package btree
 
 // TODO: support 2-3 tree
-// TODO: wrapper method to get left and right child at node key
 
 type Algorithm int
 
@@ -158,7 +157,7 @@ func (n *btreeNode) appendKey(key int, value int, right *btreeNode) {
 	n.degree++
 }
 
-func (n *btreeNode) deleteKey(i int) {
+func (n *btreeNode) removeKey(i int) {
 	copy(n.entries[i:n.degree], n.entries[i+1:n.degree])
 	n.degree--
 }
@@ -186,6 +185,8 @@ func (n *btreeNode) split(btree *Btree) (key int, value int, left *btreeNode, ri
 func (n *btreeNode) mergeChild(i int) *btreeNode {
 	left := n.left(i)
 	right := n.right(i)
+
+	// merge key into child
 	lastEntry := left.entries[left.degree-1]
 	lastEntry.key = n.entries[i].key
 	lastEntry.value = n.entries[i].value
@@ -195,11 +196,11 @@ func (n *btreeNode) mergeChild(i int) *btreeNode {
 	copy(left.entries[left.degree-1:], right.entries[0:right.degree])
 	left.degree += (right.degree - 1)
 
+	n.removeKey(i)
+
 	// right child is the merged node, left child pointer will lost after this merge process
 	right.degree = left.degree
 	right.entries = left.entries
-
-	n.deleteKey(i)
-
 	return right
+
 }

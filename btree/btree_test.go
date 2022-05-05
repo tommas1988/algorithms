@@ -117,6 +117,12 @@ func TestDeletion(t *testing.T) {
 	keys := []rune{'D', 'E', 'G', 'J', 'K', 'M', 'N', 'O', 'P', 'R', 'S', 'X',
 		'Y', 'Z', 'T', 'A', 'C', 'U', 'V', 'B', 'Q', 'L', 'F'}
 
+	initial := [][][]rune{
+		{{'P'}},
+		{{'C', 'G', 'M'}, {'T', 'X'}},
+		{{'A', 'B'}, {'D', 'E', 'F'}, {'J', 'K', 'L'}, {'N', 'O'}, {'Q', 'R', 'S'}, {'U', 'V'}, {'Y', 'Z'}},
+	}
+
 	var tests = []struct {
 		key      rune
 		expected [][][]rune
@@ -153,6 +159,12 @@ func TestDeletion(t *testing.T) {
 	btree := New(3, TopDown)
 	for _, key := range keys {
 		btree.Insert(int(key), int(key))
+	}
+
+	actual := convertBtreeToKeyArray(btree)
+	if !compare(actual, initial) {
+		t.Errorf("Initail b-tree: %v", actual)
+		return
 	}
 
 	for _, test := range tests {

@@ -83,54 +83,41 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		return false
 	}
 
-	deleteNode := struct {
-		node  *btreeNode
-		index int
-	}{}
+	var keyIdx int
+	var found bool
 	node := t.root
 	for true {
-		var i int
-		var found bool
-		if deleteNode.node != nil {
-			i = node.degree - 2
-			found = true
-		} else {
-			i, found = node.findKey(key)
+		if !found {
+			keyIdx, found = node.findKey(key)
 		}
 
 		// Since current leaf node is guaranteed to have one more key
 		// than the minimum degree node, it`s safe to delete the key
 		// or just break the loop when the key is not in the tree
 		if node.leaf {
-			if deleteNode.node != nil {
-				deleteNode.node.setKey(deleteNode.index, node.key(i))
-				deleteNode.node.setValue(deleteNode.index, node.value(i))
-			}
-
 			if found {
-				node.deleteKey(i)
+				node.removeKey(keyIdx)
 			}
 			break
 		}
 
-		left := node.left(i)
-		right := node.right(i)
+		left := node.left(keyIdx)
+		right := node.right(keyIdx)
 
 		if left.degree == t.minDegree && right.degree == t.minDegree {
-			node = node.mergeChild(i)
+			node = node.mergeChild(keyIdx)
+			keyIdx = t.minDegree - 1 // update delete key index
 			continue
 		}
 
 		var child *btreeNode
-		if deleteNode.node != nil || found {
-			// preprocessor
+		if found {
+			// replace with preprocessor and delete preprocessor recursively
 			child = left
-
-			if found {
-				deleteNode.node = node
-				deleteNode.index = i
-			}
-		} else if key < node.key(i) {
+			lastKeyIdx := child.degree - 2 // last key
+			node.setKey(keyIdx, child.key(lastKeyIdx))
+			node.setValue(keyIdx, child.value(lastKeyIdx))
+		} else if key < node.key(keyIdx) {
 			child = left
 		} else {
 			child = right
@@ -139,17 +126,22 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		if child.degree == t.minDegree {
 			// replace key from sibling with key at i of node, and merge replaced key into child node
 			if child == left {
-				child.appendKey(node.key(i), node.value(i), right.left(0))
-				node.setKey(i, right.key(i))
-				node.setValue(i, right.value(i))
-				right.deleteKey(0)
+				child.appendKey(node.key(keyIdx), node.value(keyIdx), right.left(0))
+				node.setKey(keyIdx, right.key(0))
+				node.setValue(keyIdx, right.value(0))
+				right.removeKey(0)
 			} else {
-				lastKeyIndex := left.degree - 2
-				child.addKey(0, node.key(i), node.value(i), left.right(lastKeyIndex), node.left(0))
-				node.setKey(i, left.key(lastKeyIndex))
-				node.setValue(i, left.value(lastKeyIndex))
-				left.deleteKey(lastKeyIndex)
+				lastKeyIdx := left.degree - 2
+				child.addKey(0, node.key(keyIdx), node.value(keyIdx), left.right(lastKeyIdx), right.left(0))
+				node.setKey(keyIdx, left.key(lastKeyIdx))
+				node.setValue(keyIdx, left.value(lastKeyIdx))
+				left.degree--
 			}
+		}
+
+		if found {
+			// update delete key index
+			keyIdx = child.degree - 2
 		}
 
 		node = child
@@ -161,5 +153,5 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		t.root = t.root.left(0)
 	}
 
-	return deleteNode.node != nil
+	return found
 }

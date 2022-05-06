@@ -44,7 +44,8 @@ func New(minDegree int, alg Algorithm) *Btree {
 		btree.insertHandler = topDownInsertHandler
 		btree.deleteHandler = topDownDeleteHandler
 	} else if alg == BottomUp {
-		panic("Bottom up algorithm is not implement yet")
+		btree.insertHandler = bottomUpInsertHanlder
+		btree.deleteHandler = bottomUpDeleteHandler
 	}
 	return btree
 }
@@ -81,6 +82,25 @@ func (t *Btree) Delete(key int) bool {
 
 func (t *Btree) newNode() *btreeNode {
 	return &btreeNode{degree: 0, entries: make([]entry, t.maxDegree)}
+}
+
+func (t *Btree) newRoot(key int, value int, left *btreeNode, right *btreeNode) {
+	leaf := false
+	if left == nil {
+		leaf = true
+	}
+	root := &btreeNode{
+		degree:  2,
+		entries: make([]entry, t.maxDegree),
+		leaf:    leaf,
+	}
+
+	root.entries[0].key = key
+	root.entries[0].value = value
+	root.entries[0].node = left
+	root.entries[1].node = right
+
+	t.root = root
 }
 
 /**

@@ -10,23 +10,15 @@ package btree
 func topDownInsertHandler(t *Btree, key int, value int) {
 	// empty tree
 	if t.root == nil {
-		root := t.newNode()
-		root.setKey(0, key)
-		root.setValue(0, value)
-		root.degree = 2
-		root.leaf = true
-		t.root = root
+		t.newRoot(key, value, nil, nil)
 		return
 	}
 
 	// handle root is full
 	// the only way to increase the height of a b-tree
 	if t.maxDegree == t.root.degree {
-		newRoot := t.newNode()
-		newRoot.degree = 1
 		key, value, left, right := t.root.split(t)
-		newRoot.addKey(0, key, value, left, right)
-		t.root = newRoot
+		t.newRoot(key, value, left, right)
 	}
 
 	node := t.root

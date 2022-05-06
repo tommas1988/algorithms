@@ -2,7 +2,7 @@ package btree
 
 import "testing"
 
-func TestInsertion(t *testing.T) {
+func TestTopDownInsertion(t *testing.T) {
 	var tests = []struct {
 		key      rune
 		expected [][][]rune
@@ -113,7 +113,7 @@ func TestInsertion(t *testing.T) {
 	}
 }
 
-func TestDeletion(t *testing.T) {
+func TestTopDownDeletion(t *testing.T) {
 	keys := []rune{'D', 'E', 'G', 'J', 'K', 'M', 'N', 'O', 'P', 'R', 'S', 'X',
 		'Y', 'Z', 'T', 'A', 'C', 'U', 'V', 'B', 'Q', 'L', 'F'}
 
@@ -175,6 +175,117 @@ func TestDeletion(t *testing.T) {
 		actual := convertBtreeToKeyArray(btree)
 		if !compare(actual, test.expected) {
 			t.Errorf("btree.Delete(int(%c)) with result: %v", test.key, actual)
+			return
+		}
+	}
+}
+
+func TestBottomUpInsertion(t *testing.T) {
+	var tests = []struct {
+		key      rune
+		expected [][][]rune
+	}{
+		{'F', [][][]rune{
+			{{'F'}},
+		}},
+		{'S', [][][]rune{
+			{{'F', 'S'}},
+		}},
+		{'Q', [][][]rune{
+			{{'F', 'Q', 'S'}},
+		}},
+		{'K', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K'}, {'S'}},
+		}},
+		{'C', [][][]rune{
+			{{'Q'}},
+			{{'C', 'F', 'K'}, {'S'}},
+		}},
+		{'L', [][][]rune{
+			{{'F', 'Q'}},
+			{{'C'}, {'K', 'L'}, {'S'}},
+		}},
+		{'H', [][][]rune{
+			{{'F', 'Q'}},
+			{{'C'}, {'H', 'K', 'L'}, {'S'}},
+		}},
+		{'T', [][][]rune{
+			{{'F', 'Q'}},
+			{{'C'}, {'H', 'K', 'L'}, {'S', 'T'}},
+		}},
+		{'V', [][][]rune{
+			{{'F', 'Q'}},
+			{{'C'}, {'H', 'K', 'L'}, {'S', 'T', 'V'}},
+		}},
+		{'W', [][][]rune{
+			{{'F', 'Q', 'T'}},
+			{{'C'}, {'H', 'K', 'L'}, {'S'}, {'V', 'W'}},
+		}},
+		{'M', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K'}, {'T'}},
+			{{'C'}, {'H'}, {'L', 'M'}, {'S'}, {'V', 'W'}},
+		}},
+		{'R', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K'}, {'T'}},
+			{{'C'}, {'H'}, {'L', 'M'}, {'R', 'S'}, {'V', 'W'}},
+		}},
+		{'N', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K'}, {'T'}},
+			{{'C'}, {'H'}, {'L', 'M', 'N'}, {'R', 'S'}, {'V', 'W'}},
+		}},
+		{'P', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K', 'M'}, {'T'}},
+			{{'C'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V', 'W'}},
+		}},
+		{'A', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K', 'M'}, {'T'}},
+			{{'A', 'C'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V', 'W'}},
+		}},
+		{'B', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K', 'M'}, {'T'}},
+			{{'A', 'B', 'C'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V', 'W'}},
+		}},
+		{'X', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K', 'M'}, {'T'}},
+			{{'A', 'B', 'C'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V', 'W', 'X'}},
+		}},
+		{'Y', [][][]rune{
+			{{'Q'}},
+			{{'F', 'K', 'M'}, {'T', 'W'}},
+			{{'A', 'B', 'C'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V'}, {'X', 'Y'}},
+		}},
+		{'D', [][][]rune{
+			{{'K', 'Q'}},
+			{{'B', 'F'}, {'M'}, {'T', 'W'}},
+			{{'A'}, {'C', 'D'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V'}, {'X', 'Y'}},
+		}},
+		{'Z', [][][]rune{
+			{{'K', 'Q'}},
+			{{'B', 'F'}, {'M'}, {'T', 'W'}},
+			{{'A'}, {'C', 'D'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V'}, {'X', 'Y', 'Z'}},
+		}},
+		{'E', [][][]rune{
+			{{'K', 'Q'}},
+			{{'B', 'F'}, {'M'}, {'T', 'W'}},
+			{{'A'}, {'C', 'D', 'E'}, {'H'}, {'L'}, {'N', 'P'}, {'R', 'S'}, {'V'}, {'X', 'Y', 'Z'}},
+		}},
+	}
+
+	btree := New(2, BottomUp)
+	for _, test := range tests {
+		btree.Insert(int(test.key), int(test.key))
+
+		actual := convertBtreeToKeyArray(btree)
+		if !compare(actual, test.expected) {
+			t.Errorf("btree.Insert(int(%c), int(%[1]c)) with result: %v", test.key, actual)
 			return
 		}
 	}

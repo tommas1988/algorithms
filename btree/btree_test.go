@@ -291,6 +291,75 @@ func TestBottomUpInsertion(t *testing.T) {
 	}
 }
 
+func TestBottomUpDeletion(t *testing.T) {
+	keys := []rune{'D', 'E', 'G', 'J', 'K', 'M', 'N', 'O', 'P', 'R', 'S', 'X',
+		'Y', 'Z', 'T', 'A', 'C', 'U', 'V', 'B', 'Q', 'L', 'F'}
+
+	initial := [][][]rune{
+		{{'P'}},
+		{{'C', 'G', 'M'}, {'T', 'X'}},
+		{{'A', 'B'}, {'D', 'E', 'F'}, {'J', 'K', 'L'}, {'N', 'O'}, {'Q', 'R', 'S'}, {'U', 'V'}, {'Y', 'Z'}},
+	}
+
+	var tests = []struct {
+		key      rune
+		expected [][][]rune
+	}{
+		{'S', [][][]rune{
+			{{'P'}},
+			{{'C', 'G', 'M'}, {'T', 'X'}},
+			{{'A', 'B'}, {'D', 'E', 'F'}, {'J', 'K', 'L'}, {'N', 'O'}, {'Q', 'R'}, {'U', 'V'}, {'Y', 'Z'}},
+		}},
+		{'B', [][][]rune{
+			{{'P'}},
+			{{'D', 'G', 'M'}, {'T', 'X'}},
+			{{'A', 'C'}, {'E', 'F'}, {'J', 'K', 'L'}, {'N', 'O'}, {'Q', 'R'}, {'U', 'V'}, {'Y', 'Z'}},
+		}},
+		{'Z', [][][]rune{
+			{{'M'}},
+			{{'D', 'G'}, {'P', 'T'}},
+			{{'A', 'C'}, {'E', 'F'}, {'J', 'K', 'L'}, {'N', 'O'}, {'Q', 'R'}, {'U', 'V', 'X', 'Y'}},
+		}},
+		{'M', [][][]rune{
+			{{'L'}},
+			{{'D', 'G'}, {'P', 'T'}},
+			{{'A', 'C'}, {'E', 'F'}, {'J', 'K'}, {'N', 'O'}, {'Q', 'R'}, {'U', 'V', 'X', 'Y'}},
+		}},
+		{'T', [][][]rune{
+			{{'L'}},
+			{{'D', 'G'}, {'P', 'U'}},
+			{{'A', 'C'}, {'E', 'F'}, {'J', 'K'}, {'N', 'O'}, {'Q', 'R'}, {'V', 'X', 'Y'}},
+		}},
+		{'P', [][][]rune{
+			{{'D', 'G', 'L', 'U'}},
+			{{'A', 'C'}, {'E', 'F'}, {'J', 'K'}, {'N', 'O', 'Q', 'R'}, {'V', 'X', 'Y'}},
+		}},
+	}
+
+	btree := New(3, BottomUp)
+	for _, key := range keys {
+		btree.Insert(int(key), int(key))
+	}
+
+	actual := convertBtreeToKeyArray(btree)
+	if !compare(actual, initial) {
+		t.Errorf("Initail b-tree: %v", actual)
+		return
+	}
+
+	for _, test := range tests {
+		if !btree.Delete(int(test.key)) {
+			t.Errorf("btree.Delete(int(%c)) = false", test.key)
+		}
+
+		actual := convertBtreeToKeyArray(btree)
+		if !compare(actual, test.expected) {
+			t.Errorf("btree.Delete(int(%c)) with result: %v", test.key, actual)
+			return
+		}
+	}
+}
+
 func convertBtreeToKeyArray(btree *Btree) [][][]rune {
 	var context = struct {
 		nodes         [2][]*btreeNode

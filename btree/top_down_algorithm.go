@@ -97,7 +97,10 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		right := node.right(keyIdx)
 
 		if left.degree == t.minDegree && right.degree == t.minDegree {
-			node = node.mergeChild(keyIdx)
+			mergeNode := node.mergeChild(keyIdx)
+			node.removeKey(keyIdx)
+			node = mergeNode
+
 			keyIdx = t.minDegree - 1 // update delete key index
 			continue
 		}
@@ -116,18 +119,10 @@ func topDownDeleteHandler(t *Btree, key int) bool {
 		}
 
 		if child.degree == t.minDegree {
-			// replace key from sibling with key at i of node, and merge replaced key into child node
 			if child == left {
-				child.appendKey(node.key(keyIdx), node.value(keyIdx), right.left(0))
-				node.setKey(keyIdx, right.key(0))
-				node.setValue(keyIdx, right.value(0))
-				right.removeKey(0)
+				node.moveChildKey(keyIdx, toLeft)
 			} else {
-				lastKeyIdx := left.degree - 2
-				child.addKey(0, node.key(keyIdx), node.value(keyIdx), left.right(lastKeyIdx), right.left(0))
-				node.setKey(keyIdx, left.key(lastKeyIdx))
-				node.setValue(keyIdx, left.value(lastKeyIdx))
-				left.degree--
+				node.moveChildKey(keyIdx, toRight)
 			}
 		}
 

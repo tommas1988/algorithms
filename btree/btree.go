@@ -3,11 +3,17 @@ package btree
 // TODO: support 2-3 tree
 
 type Algorithm int
+type moveDirection int
 
 // TODO: [STY] golang const and iota
 const (
 	TopDown Algorithm = iota
 	BottomUp
+)
+
+const (
+	toLeft moveDirection = iota
+	toRight
 )
 
 // a Btree handle, and non of it`s fields are exported
@@ -178,7 +184,9 @@ func (n *btreeNode) appendKey(key int, value int, right *btreeNode) {
 }
 
 func (n *btreeNode) removeKey(i int) {
-	copy(n.entries[i:n.degree], n.entries[i+1:n.degree])
+	if i < n.degree-2 {
+		copy(n.entries[i:n.degree], n.entries[i+1:n.degree])
+	}
 	n.degree--
 }
 
@@ -202,25 +210,54 @@ func (n *btreeNode) split(btree *Btree) (key int, value int, left *btreeNode, ri
  * merge key at i and keys of left child into right child
  * return merged node
  */
-func (n *btreeNode) mergeChild(i int) *btreeNode {
+func (n *btreeNode) mergeChild(idx int) *btreeNode {
+	left := n.left(idx)
+	right := n.right(idx)
+
+	var mergeNode *btreeNode
+	if idx == n.degree-2 {
+		// merge right into left
+		left.setKey(left.degree-1, n.key(idx))
+		left.setValue(left.degree-1, n.value(idx))
+
+		// append right entries to left
+		copy(left.entries[left.degree:], right.entries[0:right.degree])
+		left.degree += right.degree
+
+		mergeNode = left
+	} else {
+		// merge left into right
+		c := left.degree // number of left keys and parent key
+		for i := 0; i < c; i++ {
+			right.entries[c+i] = right.entries[i]
+		}
+		copy(right.entries[0:left.degree], left.entries[0:left.degree])
+		right.setKey(left.degree-1, n.key(idx))
+		right.setValue(left.degree-1, n.value(idx))
+		right.degree += left.degree
+
+		mergeNode = right
+	}
+
+	return mergeNode
+}
+
+/**
+ * replace key from a child to its sibling
+ */
+func (n *btreeNode) moveChildKey(i int, dir moveDirection) {
 	left := n.left(i)
 	right := n.right(i)
-
-	// merge key into child
-	lastEntry := left.entries[left.degree-1]
-	lastEntry.key = n.entries[i].key
-	lastEntry.value = n.entries[i].value
-	left.degree++
-
-	// append right entries to left
-	copy(left.entries[left.degree-1:], right.entries[0:right.degree])
-	left.degree += (right.degree - 1)
-
-	n.removeKey(i)
-
-	// right child is the merged node, left child pointer will lost after this merge process
-	right.degree = left.degree
-	right.entries = left.entries
-	return right
-
+	if dir == toLeft {
+		left.appendKey(n.key(i), n.value(i), right.left(0))
+		n.setKey(i, right.key(0))
+		n.setValue(i, right.value(0))
+		right.removeKey(0)
+	} else {
+		lastKeyIdx := left.degree - 2
+		right.addKey(0, n.key(i), n.value(i), left.right(lastKeyIdx), right.left(0))
+		n.setKey(i, left.key(lastKeyIdx))
+		n.setValue(i, left.value(lastKeyIdx))
+		left.removeKey(lastKeyIdx)
+	}
 }

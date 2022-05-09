@@ -1,11 +1,13 @@
-package red_black_tree
+package rbtree
 
 import "testing"
 
+const testFailedPanic = "test_failed_panic"
+
 func TestInsertion(t *testing.T) {
 	var tests = []struct {
-		key int
-		value int
+		key      int
+		value    int
 		expected []node
 	}{
 		{1, 1, []node{
@@ -73,13 +75,7 @@ func TestInsertion(t *testing.T) {
 		}},
 	}
 
-	const testFailedPanic = "test_failed_panic"
-	defer func() {
-		// prevent from printing stack trace for test failed panic
-		if err := recover(); err != nil && err != testFailedPanic {
-			panic(err)
-		}
-	}()
+	defer testFailedHandler()
 
 	tree := New()
 	for _, test := range tests {
@@ -94,15 +90,106 @@ func TestInsertion(t *testing.T) {
 				actual.color != expected.color {
 				t.Errorf("RedBlackTree.Insert(%d, %d) produce result: %v", test.key, test.value, keys)
 
-				// TODO: go try-catch-finally panic recover defer
+				// TODO: [STY] go try-catch-finally panic recover defer
 				panic(testFailedPanic)
 			}
 		})
 	}
 }
 
+func TestDeletion(t *testing.T) {
+	keys := []int{41, 38, 31, 12, 19, 8}
+
+	var tests = []struct {
+		key      int
+		expected []node
+	}{
+		{8, []node{
+			{38, 38, nil, nil, black},
+			{19, 19, nil, nil, red},
+			{12, 12, nil, nil, black},
+			{31, 31, nil, nil, black},
+			{41, 41, nil, nil, black},
+		}},
+		{12, []node{
+			{38, 38, nil, nil, black},
+			{19, 19, nil, nil, black},
+			{31, 31, nil, nil, red},
+			{41, 41, nil, nil, black},
+		}},
+		{19, []node{
+			{38, 38, nil, nil, black},
+			{31, 31, nil, nil, black},
+			{41, 41, nil, nil, black},
+		}},
+		{31, []node{
+			{38, 38, nil, nil, black},
+			{41, 41, nil, nil, red},
+		}},
+		{38, []node{
+			{41, 41, nil, nil, black},
+		}},
+		{41, []node{}},
+	}
+
+	defer testFailedHandler()
+
+	tree := New()
+	for _, k := range keys {
+		tree.Insert(k, k)
+	}
+	initail := []node{
+		{38, 38, nil, nil, black},
+		{19, 19, nil, nil, red},
+		{12, 12, nil, nil, black},
+		{8, 8, nil, nil, red},
+		{31, 31, nil, nil, black},
+		{41, 41, nil, nil, black},
+	}
+
+	actualkeys := make([]int, 0, len(keys))
+	preorderTreeWalk(tree, func(actual *node, i int) {
+		actualkeys = append(actualkeys, actual.key)
+		expected := initail[i]
+		if actual.key != expected.key ||
+			actual.value != expected.value ||
+			actual.color != expected.color {
+			t.Errorf("Unexpected initail RedBlackTree structual: %v", actualkeys)
+
+			panic(testFailedPanic)
+		}
+	})
+
+	for _, test := range tests {
+		if !tree.Delete(test.key) {
+			t.Errorf("RedBlackTree.Delete(%d) = false", test.key)
+			return
+		}
+
+		actualkeys = make([]int, 0, len(test.expected))
+		preorderTreeWalk(tree, func(actual *node, i int) {
+			actualkeys = append(actualkeys, actual.key)
+			expected := test.expected[i]
+			if actual.key != expected.key ||
+				actual.value != expected.value ||
+				actual.color != expected.color {
+				t.Errorf("RedBlackTree.Delete(%d) produce tree structual: %v", test.key, actualkeys)
+
+				panic(testFailedPanic)
+			}
+		})
+	}
+}
+
+func testFailedHandler() {
+	// prevent from printing stack trace for test failed panic
+	if err := recover(); err != nil && err != testFailedPanic {
+		panic(err)
+	}
+}
+
 func preorderTreeWalk(t *RedBlackTree, cb func(node *node, i int)) {
-	if t.root == nil {
+	if t.root == t.nilNode {
 		return
 	}
 

@@ -1,6 +1,7 @@
-package red_black_tree
+package rbtree
 
 type color int
+
 const (
 	red color = iota
 	black
@@ -8,24 +9,27 @@ const (
 
 // TODO: or RBTree ?
 type RedBlackTree struct {
-	root *node
+	root    *node
 	nilNode *node
 }
 
 type node struct {
-	key int
+	key   int
 	value int
-	left *node
+	left  *node
 	right *node
 	color color
 }
 
 // TODO: need a argument to setup top-down or bottom-up algrithm
 func New() *RedBlackTree {
+	nilNode := node{
+		color: black,
+	}
 	return &RedBlackTree{
-		nilNode: &node{
-			color: black,
-		}}
+		root:    &nilNode,
+		nilNode: &nilNode,
+	}
 }
 
 func (rbtree *RedBlackTree) Search(key int) (int, bool) {
@@ -46,7 +50,7 @@ func (rbtree *RedBlackTree) Search(key int) (int, bool) {
 
 // Top-down algorithm
 func (rbtree *RedBlackTree) Insert(key int, value int) {
-	if rbtree.root == nil {
+	if rbtree.root == rbtree.nilNode {
 		root := &node{key, value, rbtree.nilNode, rbtree.nilNode, black}
 
 		// make root as child of nil node
@@ -107,28 +111,28 @@ func (rbtree *RedBlackTree) Insert(key int, value int) {
 
 // compare with 2-3-4 B-tree
 func (rbtree *RedBlackTree) Delete(key int) bool {
-	if rbtree.root == nil {
+	if rbtree.root == rbtree.nilNode {
 		return false
 	}
 
 	var (
 		currNode *node
-		p *node
-		gp *node
+		p        *node
+		gp       *node
 	)
 	var deletedNode *node = nil
 
+	p = rbtree.root
+	gp = rbtree.nilNode
 	if rbtree.root.key == key {
 		deletedNode = rbtree.root
 		// find preprocessor
 		currNode = rbtree.root.left
-	} else if rbtree.root.key < key {
+	} else if key < rbtree.root.key {
 		currNode = rbtree.root.left
 	} else {
 		currNode = rbtree.root.right
 	}
-	p = rbtree.root
-	gp = rbtree.nilNode
 
 	for currNode != rbtree.nilNode {
 		if currNode.color == black &&
@@ -196,37 +200,59 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 			}
 		}
 
-		gp = p
-		p = currNode
+		var child *node
 		if currNode.key == key {
 			deletedNode = currNode
 			// find preprocessor
-			currNode = currNode.left
+			if currNode.left == rbtree.nilNode {
+				break
+			}
+			child = currNode.left
 		} else if deletedNode != nil {
 			// find preprocessor
 			if currNode.right == rbtree.nilNode {
 				break
 			}
-			currNode = currNode.right
-		} else if (key < currNode.key) {
-			currNode = currNode.left
+			child = currNode.right
+		} else if key < currNode.key {
+			child = currNode.left
 		} else {
-			currNode = currNode.right
+			child = currNode.right
 		}
 
+		gp = p
+		p = currNode
+		currNode = child
 	}
 
 	if deletedNode == nil {
 		return false
 	}
 
-	deletedNode.key = currNode.key
-	deletedNode.value = currNode.value
-	if p.right == currNode {
-		p.right = rbtree.nilNode
+	if deletedNode.left == rbtree.nilNode {
+		// force right child to black, in case of red node
+		deletedNode.right.color = black
+		if deletedNode == rbtree.root {
+			p = rbtree.nilNode
+		}
+		if p.left == deletedNode {
+			p.left = deletedNode.right
+		} else {
+			p.right = deletedNode.right
+		}
 	} else {
-		p.left = rbtree.nilNode
+		deletedNode.key = currNode.key
+		deletedNode.value = currNode.value
+		if p.right == currNode {
+			p.right = rbtree.nilNode
+		} else {
+			p.left = rbtree.nilNode
+		}
 	}
+
+	// reset root
+	rbtree.root = rbtree.nilNode.left
+
 	return true
 }
 
@@ -239,7 +265,7 @@ func rebalance(ggp, gp, p, c *node) (_gp, _p, _c *node) {
 
 		gp.color = red
 		p.color = black
-		if (ggp.left == gp) {
+		if ggp.left == gp {
 			ggp.left = rightRotate(gp)
 		} else {
 			ggp.right = rightRotate(gp)
@@ -253,7 +279,7 @@ func rebalance(ggp, gp, p, c *node) (_gp, _p, _c *node) {
 
 		gp.color = red
 		p.color = black
-		if (ggp.left == gp) {
+		if ggp.left == gp {
 			ggp.left = leftRotate(gp)
 		} else {
 			ggp.right = leftRotate(gp)
@@ -271,7 +297,7 @@ func leftRotate(root *node) *node {
 	newRoot := root.right
 	root.right = newRoot.left
 	newRoot.left = root
-	return newRoot;
+	return newRoot
 }
 
 /**
@@ -280,6 +306,6 @@ func leftRotate(root *node) *node {
 func rightRotate(root *node) *node {
 	newRoot := root.left
 	root.left = newRoot.right
-	newRoot.right = root;
-	return newRoot;
+	newRoot.right = root
+	return newRoot
 }

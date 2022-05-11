@@ -77,7 +77,7 @@ func TestInsertion(t *testing.T) {
 
 	defer testFailedHandler()
 
-	tree := New()
+	tree := New(TopDown)
 	for _, test := range tests {
 		tree.Insert(test.key, test.value)
 
@@ -134,7 +134,7 @@ func TestDeletion(t *testing.T) {
 
 	defer testFailedHandler()
 
-	tree := New()
+	tree := New(TopDown)
 	for _, k := range keys {
 		tree.Insert(k, k)
 	}

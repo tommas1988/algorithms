@@ -4,7 +4,7 @@ import "testing"
 
 const testFailedPanic = "test_failed_panic"
 
-func TestInsertion(t *testing.T) {
+func TestTopDownInsertion(t *testing.T) {
 	var tests = []struct {
 		key      int
 		value    int
@@ -97,7 +97,7 @@ func TestInsertion(t *testing.T) {
 	}
 }
 
-func TestDeletion(t *testing.T) {
+func TestTopDownDeletion(t *testing.T) {
 	keys := []int{41, 38, 31, 12, 19, 8}
 
 	var tests = []struct {
@@ -175,6 +175,99 @@ func TestDeletion(t *testing.T) {
 				actual.color != expected.color {
 				t.Errorf("RedBlackTree.Delete(%d) produce tree structual: %v", test.key, actualkeys)
 
+				panic(testFailedPanic)
+			}
+		})
+	}
+}
+
+func TestBottomUpInsertion(t *testing.T) {
+	var tests = []struct {
+		key      int
+		value    int
+		expected []node
+	}{
+		{1, 1, []node{
+			{1, 1, nil, nil, black},
+		}},
+		{9, 9, []node{
+			{1, 1, nil, nil, black},
+			{9, 9, nil, nil, red},
+		}},
+		{2, 2, []node{
+			{2, 2, nil, nil, black},
+			{1, 1, nil, nil, red},
+			{9, 9, nil, nil, red},
+		}},
+		{8, 8, []node{
+			{2, 2, nil, nil, black},
+			{1, 1, nil, nil, black},
+			{9, 9, nil, nil, black},
+			{8, 8, nil, nil, red},
+		}},
+		{3, 3, []node{
+			{2, 2, nil, nil, black},
+			{1, 1, nil, nil, black},
+			{8, 8, nil, nil, black},
+			{3, 3, nil, nil, red},
+			{9, 9, nil, nil, red},
+		}},
+		{7, 7, []node{
+			{2, 2, nil, nil, black},
+			{1, 1, nil, nil, black},
+			{8, 8, nil, nil, red},
+			{3, 3, nil, nil, black},
+			{7, 7, nil, nil, red},
+			{9, 9, nil, nil, black},
+		}},
+		{4, 4, []node{
+			{2, 2, nil, nil, black},
+			{1, 1, nil, nil, black},
+			{8, 8, nil, nil, red},
+			{4, 4, nil, nil, black},
+			{3, 3, nil, nil, red},
+			{7, 7, nil, nil, red},
+			{9, 9, nil, nil, black},
+		}},
+		{6, 6, []node{
+			{4, 4, nil, nil, black},
+			{2, 2, nil, nil, red},
+			{1, 1, nil, nil, black},
+			{3, 3, nil, nil, black},
+			{8, 8, nil, nil, red},
+			{7, 7, nil, nil, black},
+			{6, 6, nil, nil, red},
+			{9, 9, nil, nil, black},
+		}},
+		{5, 5, []node{
+			{4, 4, nil, nil, black},
+			{2, 2, nil, nil, red},
+			{1, 1, nil, nil, black},
+			{3, 3, nil, nil, black},
+			{8, 8, nil, nil, red},
+			{6, 6, nil, nil, black},
+			{5, 5, nil, nil, red},
+			{7, 7, nil, nil, red},
+			{9, 9, nil, nil, black},
+		}},
+	}
+
+	defer testFailedHandler()
+
+	tree := New(BottomUp)
+	for _, test := range tests {
+		tree.Insert(test.key, test.value)
+
+		keys := make([]int, 0, len(test.expected))
+		preorderTreeWalk(tree, func(actual *node, i int) {
+			keys = append(keys, actual.key)
+			expected := test.expected[i]
+			if actual.key != expected.key ||
+				actual.value != expected.value ||
+				actual.color != expected.color {
+				t.Errorf("RedBlackTree.Insert(%d, %d) produce result: %v", test.key, test.value, keys)
+
+				// TODO: [STY] go try-catch-finally panic recover defer
 				panic(testFailedPanic)
 			}
 		})

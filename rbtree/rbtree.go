@@ -29,7 +29,6 @@ type node struct {
 	color color
 }
 
-// TODO: need a argument to setup top-down or bottom-up algrithm
 func New(alg Algorithm) *RedBlackTree {
 	nilNode := node{
 		color: black,
@@ -43,7 +42,8 @@ func New(alg Algorithm) *RedBlackTree {
 		rbtree.insertHanlder = topDownInsertHandler
 		rbtree.deleteHandler = topDownDeleteHandler
 	} else {
-
+		rbtree.insertHanlder = bottomUpInsertHandler
+		rbtree.deleteHandler = bottomUpDeleteHandler
 	}
 
 	return &rbtree

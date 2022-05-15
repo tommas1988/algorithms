@@ -72,12 +72,12 @@ func topDownDeleteHandler(rbtree *RedBlackTree, key int) bool {
 		p        *node
 		gp       *node
 	)
-	var deletedNode *node = nil
+	var deleteNode *node = nil
 
 	p = rbtree.root
 	gp = rbtree.nilNode
 	if rbtree.root.key == key {
-		deletedNode = rbtree.root
+		deleteNode = rbtree.root
 		// find preprocessor
 		currNode = rbtree.root.left
 	} else if key < rbtree.root.key {
@@ -154,13 +154,13 @@ func topDownDeleteHandler(rbtree *RedBlackTree, key int) bool {
 
 		var child *node
 		if currNode.key == key {
-			deletedNode = currNode
+			deleteNode = currNode
 			// find preprocessor
 			if currNode.left == rbtree.nilNode {
 				break
 			}
 			child = currNode.left
-		} else if deletedNode != nil {
+		} else if deleteNode != nil {
 			// find preprocessor
 			if currNode.right == rbtree.nilNode {
 				break
@@ -177,24 +177,24 @@ func topDownDeleteHandler(rbtree *RedBlackTree, key int) bool {
 		currNode = child
 	}
 
-	if deletedNode == nil {
+	if deleteNode == nil {
 		return false
 	}
 
-	if deletedNode.left == rbtree.nilNode {
+	if deleteNode.left == rbtree.nilNode {
 		// force right child to black, in case of red node
-		deletedNode.right.color = black
-		if deletedNode == rbtree.root {
+		deleteNode.right.color = black
+		if deleteNode == rbtree.root {
 			p = rbtree.nilNode
 		}
-		if p.left == deletedNode {
-			p.left = deletedNode.right
+		if p.left == deleteNode {
+			p.left = deleteNode.right
 		} else {
-			p.right = deletedNode.right
+			p.right = deleteNode.right
 		}
 	} else {
-		deletedNode.key = currNode.key
-		deletedNode.value = currNode.value
+		deleteNode.key = currNode.key
+		deleteNode.value = currNode.value
 		if p.right == currNode {
 			p.right = rbtree.nilNode
 		} else {

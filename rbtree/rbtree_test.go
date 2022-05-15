@@ -274,6 +274,90 @@ func TestBottomUpInsertion(t *testing.T) {
 	}
 }
 
+func TestBottomUpDeletion(t *testing.T) {
+	keys := []int{41, 38, 31, 12, 19, 8}
+
+	var tests = []struct {
+		key      int
+		expected []node
+	}{
+		{8, []node{
+			{38, 38, nil, nil, black},
+			{19, 19, nil, nil, red},
+			{12, 12, nil, nil, black},
+			{31, 31, nil, nil, black},
+			{41, 41, nil, nil, black},
+		}},
+		{12, []node{
+			{38, 38, nil, nil, black},
+			{19, 19, nil, nil, black},
+			{31, 31, nil, nil, red},
+			{41, 41, nil, nil, black},
+		}},
+		{19, []node{
+			{38, 38, nil, nil, black},
+			{31, 31, nil, nil, black},
+			{41, 41, nil, nil, black},
+		}},
+		{31, []node{
+			{38, 38, nil, nil, black},
+			{41, 41, nil, nil, red},
+		}},
+		{38, []node{
+			{41, 41, nil, nil, black},
+		}},
+		{41, []node{}},
+	}
+
+	defer testFailedHandler()
+
+	tree := New(BottomUp)
+	for _, k := range keys {
+		tree.Insert(k, k)
+	}
+	initail := []node{
+		{38, 38, nil, nil, black},
+		{19, 19, nil, nil, red},
+		{12, 12, nil, nil, black},
+		{8, 8, nil, nil, red},
+		{31, 31, nil, nil, black},
+		{41, 41, nil, nil, black},
+	}
+
+	actualkeys := make([]int, 0, len(keys))
+	preorderTreeWalk(tree, func(actual *node, i int) {
+		actualkeys = append(actualkeys, actual.key)
+		expected := initail[i]
+		if actual.key != expected.key ||
+			actual.value != expected.value ||
+			actual.color != expected.color {
+			t.Errorf("Unexpected initail RedBlackTree structual: %v", actualkeys)
+
+			panic(testFailedPanic)
+		}
+	})
+
+	for _, test := range tests {
+		if !tree.Delete(test.key) {
+			t.Errorf("RedBlackTree.Delete(%d) = false", test.key)
+			return
+		}
+
+		actualkeys = make([]int, 0, len(test.expected))
+		preorderTreeWalk(tree, func(actual *node, i int) {
+			actualkeys = append(actualkeys, actual.key)
+			expected := test.expected[i]
+			if actual.key != expected.key ||
+				actual.value != expected.value ||
+				actual.color != expected.color {
+				t.Errorf("RedBlackTree.Delete(%d) produce tree structual: %v", test.key, actualkeys)
+
+				panic(testFailedPanic)
+			}
+		})
+	}
+}
+
 func testFailedHandler() {
 	// prevent from printing stack trace for test failed panic
 	if err := recover(); err != nil && err != testFailedPanic {

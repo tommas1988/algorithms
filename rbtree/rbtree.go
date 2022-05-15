@@ -73,6 +73,8 @@ func (rbtree *RedBlackTree) Delete(key int) bool {
 	return rbtree.deleteHandler(rbtree, key)
 }
 
+// TODO: need comments
+// parent and current are both red node, need rebalance
 func rebalance(ggp, gp, p, c *node) (_gp, _p, _c *node) {
 	if gp.left == p {
 		if p.right == c {
@@ -105,6 +107,87 @@ func rebalance(ggp, gp, p, c *node) (_gp, _p, _c *node) {
 	}
 
 	return _gp, _p, _c
+}
+
+// color current node to red
+func redifyNode(gp *node, p *node, c *node) {
+	if p.left == c {
+		sibling := p.right
+		if sibling.color == red {
+			// sibling belongs to up level B-tree node
+			if gp.left == p {
+				gp.left = leftRotate(p)
+			} else {
+				gp.right = leftRotate(p)
+			}
+			sibling.color = black
+			p.color = red
+			sibling = p.right
+		}
+
+		if sibling.left.color == black && sibling.right.color == black {
+			// merge B-tree node
+			p.color = black
+			c.color = red
+			sibling.color = red
+		} else {
+			// move left most node up to parent B-tree node,
+			// move origin parent down to current B-tree node
+			if sibling.left.color == red {
+				// recolor in following rotate process
+				p.right = rightRotate(sibling)
+				sibling = p.right
+			}
+
+			if gp.left == p {
+				gp.left = leftRotate(p)
+			} else {
+				gp.right = leftRotate(p)
+			}
+			sibling.color = p.color
+			sibling.right.color = black
+			p.color = black
+			c.color = red
+		}
+	} else {
+		sibling := p.left
+		if sibling.color == red {
+			// sibling belongs to up level B-tree node
+			if gp.left == p {
+				gp.left = rightRotate(p)
+			} else {
+				gp.right = rightRotate(p)
+			}
+			sibling.color = black
+			p.color = red
+			sibling = p.left
+		}
+
+		if sibling.left.color == black && sibling.right.color == black {
+			// merge B-tree node
+			p.color = black
+			c.color = red
+			sibling.color = red
+		} else {
+			// move right most node up to parent B-tree node,
+			// move origin parent down to current B-tree node
+			if sibling.right.color == red {
+				// recolor in following rotate process
+				p.left = leftRotate(sibling)
+				sibling = p.left
+			}
+
+			if gp.left == p {
+				gp.left = rightRotate(p)
+			} else {
+				gp.right = rightRotate(p)
+			}
+			sibling.color = p.color
+			sibling.left.color = black
+			p.color = black
+			c.color = red
+		}
+	}
 }
 
 /**

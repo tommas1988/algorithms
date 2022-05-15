@@ -91,65 +91,7 @@ func topDownDeleteHandler(rbtree *RedBlackTree, key int) bool {
 			currNode.left.color == black &&
 			currNode.right.color == black {
 			// minimum node, merge with parent or sibling
-			var sibling *node
-			if p.left == currNode {
-				sibling = p.right
-				if sibling.color == red {
-					// sibling is in up level, refind the same level sibling
-					if gp.left == p {
-						gp.left = leftRotate(p)
-					} else {
-						gp.right = leftRotate(p)
-					}
-					continue
-				} else if sibling.left.color == black && sibling.right.color == black {
-					// sibling is also a minimum node, merge them with parent
-					p.color = black
-					currNode.color = red
-					sibling.color = red
-				} else {
-					// sibling is 3 degree node, move up a node to parent and merge with old parent
-					if sibling.right.color == black {
-						p.right = rightRotate(sibling)
-						sibling.color = red
-						sibling.left.color = black
-					}
-
-					if gp.left == p {
-						gp.left = leftRotate(p)
-					} else {
-						gp.right = leftRotate(p)
-					}
-					currNode.color = red
-				}
-			} else {
-				sibling = p.left
-				if sibling.color == red {
-					if gp.left == p {
-						gp.left = rightRotate(p)
-					} else {
-						gp.right = rightRotate(p)
-					}
-					continue
-				} else if sibling.left.color == black && sibling.right.color == black {
-					p.color = black
-					currNode.color = red
-					sibling.color = red
-				} else {
-					if sibling.left.color == black {
-						p.left = leftRotate(sibling)
-						sibling.color = red
-						sibling.right.color = black
-					}
-
-					if gp.left == p {
-						gp.left = rightRotate(p)
-					} else {
-						gp.right = rightRotate(p)
-					}
-					currNode.color = red
-				}
-			}
+			redifyNode(gp, p, currNode)
 		}
 
 		var child *node
@@ -196,9 +138,10 @@ func topDownDeleteHandler(rbtree *RedBlackTree, key int) bool {
 		deleteNode.key = currNode.key
 		deleteNode.value = currNode.value
 		if p.right == currNode {
-			p.right = rbtree.nilNode
+			// right child is nil node, but left child may be a red node
+			p.right = currNode.left
 		} else {
-			p.left = rbtree.nilNode
+			p.left = currNode.left
 		}
 	}
 

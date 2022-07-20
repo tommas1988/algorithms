@@ -1,5 +1,3 @@
-module github.com/tommas1988
+module github.com/tommas1988/algorithms
 
 go 1.13
-
-require github.com/nsf/gocode v0.0.0-20190302080247-5bee97b48836 // indirect

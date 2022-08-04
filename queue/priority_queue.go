@@ -19,18 +19,16 @@ type PriorityQueue[T any] struct {
 }
 
 func New[T any](size int) *PriorityQueue[T] {
-	entries := make([]Entry[T], size)
-	h := heap.New(entries, 0, func(e1, e2 Entry[T]) int {
-		return e1.priority - e2.priority
-	})
-	return &PriorityQueue[T]{
-		count:   0,
-		entries: entries,
-		heap:    h,
-	}
+	q := &PriorityQueue[T]{}
+	q.entries = make([]Entry[T], size)
+	q.heap = heap.New(q.entries, 0,
+		func(e1, e2 Entry[T]) int {
+			return e1.priority - e2.priority
+		}, q.updateIndex)
+	return q
 }
 
-func (q *PriorityQueue[T]) enqueue(priority int, value T) *Entry[T] {
+func (q *PriorityQueue[T]) Enqueue(priority int, value T) *Entry[T] {
 	entry := &q.entries[q.count]
 	if q.count == 0 {
 		entry.priority = priority
@@ -49,7 +47,7 @@ func (q *PriorityQueue[T]) enqueue(priority int, value T) *Entry[T] {
 	return entry
 }
 
-func (q *PriorityQueue[T]) dequeue() T {
+func (q *PriorityQueue[T]) Dequeue() T {
 	if q.count == 0 {
 		panic("empty queue")
 	}
@@ -58,25 +56,27 @@ func (q *PriorityQueue[T]) dequeue() T {
 	q.count -= 1
 	q.entries[0] = q.entries[q.count]
 	q.heap.SetHeapArray(q.entries, q.count)
-	// TODO: need update entry index
 	q.heap.MaxHeapify(0)
 
 	return maxEntry.value
 }
 
-func (q *PriorityQueue[T]) peek() T {
+func (q *PriorityQueue[T]) Peek() T {
 	return q.entries[0].value
 }
 
-func (q *PriorityQueue[T]) remove(idx int) {
+func (q *PriorityQueue[T]) Remove(idx int) {
 	q.count -= 1
 	q.heap.SetHeapArray(q.entries, q.count)
 	last := q.count
 	if idx != last {
 		q.entries[idx] = q.entries[last]
-		// TODO: need update entry index
 		q.heap.MaxHeapify(idx)
 	}
+}
+
+func (q *PriorityQueue[T]) updateIndex(newIdx int) {
+	q.entries[newIdx].index = newIdx
 }
 
 func (q *PriorityQueue[T]) increasePriority(idx int, priority int) {
@@ -84,12 +84,11 @@ func (q *PriorityQueue[T]) increasePriority(idx int, priority int) {
 		p := q.heap.Parent(idx)
 		if q.entries[p].priority < priority {
 			q.entries[p], q.entries[idx] = q.entries[idx], q.entries[p]
+			q.updateIndex(p)
+			q.updateIndex(idx)
 			idx = p
 		} else {
 			break
 		}
 	}
-
-	// update index
-	q.entries[idx].index = idx
 }

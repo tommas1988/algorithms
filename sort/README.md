@@ -1,2 +1,3 @@
-# O(nlog(n))
-> Proof
+# Time Complexity
+> O(nlg(n))
+## Proof

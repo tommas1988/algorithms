@@ -1,16 +1,25 @@
 package heap
 
 type Heap[E any] struct {
-	size        int
-	elts        []E
-	compareFunc func(E, E) int
+	size          int
+	elts          []E
+	compareFunc   func(E, E) int
+	onIndexChange func(int)
 }
 
-func New[E any](elts []E, size int, compareFunc func(E, E) int) *Heap[E] {
+func defaultIndexChangeHandler(newIdx int) {
+	// do nothing...
+}
+
+func New[E any](elts []E, size int, compareFunc func(E, E) int, onIndexChange func(int)) *Heap[E] {
+	if onIndexChange == nil {
+		onIndexChange = defaultIndexChangeHandler
+	}
 	return &Heap[E]{
-		size:        size,
-		elts:        elts,
-		compareFunc: compareFunc,
+		size:          size,
+		elts:          elts,
+		compareFunc:   compareFunc,
+		onIndexChange: onIndexChange,
 	}
 }
 
@@ -38,6 +47,8 @@ func (h *Heap[E]) MaxHeapify(idx int) {
 
 		// switch largest element and continue process with new idx
 		h.elts[largest], h.elts[idx] = h.elts[idx], h.elts[largest]
+		h.onIndexChange(largest)
+		h.onIndexChange(idx)
 		idx = largest
 	}
 
@@ -62,6 +73,8 @@ func (h *Heap[E]) MinHeapify(idx int) {
 
 		// switch smallest element and continue process with new idx
 		h.elts[smallest], h.elts[idx] = h.elts[idx], h.elts[smallest]
+		h.onIndexChange(smallest)
+		h.onIndexChange(idx)
 		idx = smallest
 	}
 }

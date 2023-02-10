@@ -11,6 +11,7 @@ const (
 	DESC
 )
 
+// O(nlgn)
 func HeapSort[E any](elts []E, compareFunc func(E, E) int, order Order) {
 	size := len(elts)
 	h := heap.New[E](elts, size, compareFunc, nil)

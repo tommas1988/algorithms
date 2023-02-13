@@ -1,17 +1,27 @@
 package sort
 
+import "math/rand"
+
+/**
+ * Best with O(nlgn), and worst with O(n^2)
+ */
+
 func QuickSort(arr []int) {
-	doQuickSort(arr, 0, len(arr)-1)
+	doQuickSort(arr, 0, len(arr)-1, false)
 }
 
-func doQuickSort(arr []int, s int, e int) {
+func RandomizedQuickSort(arr []int) {
+	doQuickSort(arr, 0, len(arr)-1, true)
+}
+
+func doQuickSort(arr []int, s int, e int, randomize bool) {
 	if s >= e {
 		return
 	}
 
 	i := partition(arr, s, e)
-	doQuickSort(arr, s, i-1)
-	doQuickSort(arr, i+1, e)
+	doQuickSort(arr, s, i-1, randomize)
+	doQuickSort(arr, i+1, e, randomize)
 }
 
 // this version with less compare statements in each loop
@@ -48,4 +58,12 @@ func partitionV1(arr []int, s int, e int) int {
 	arr[j], arr[e] = arr[e], arr[j]
 
 	return j
+}
+
+// Randomize pivot element
+func randomizedPartition(arr []int, s int, e int) int {
+	i := rand.Intn(e-s+1) + s
+	// switch random and end element
+	arr[i], arr[e] = arr[e], arr[i]
+	return partition(arr, s, e)
 }

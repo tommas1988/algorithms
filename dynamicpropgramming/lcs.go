@@ -54,3 +54,39 @@ func LcsV1(a, b []int) []int {
 
 	return lcs
 }
+
+// Bottom up algorithm
+// O(n) = len(a)*len(b)
+func LcsV2(a, b []int) []int {
+	memo := make([][][]int, len(a))
+	for i := range a {
+		memo[i] = make([][]int, len(b))
+	}
+
+	return lcsV2Aux(a, b, len(a), len(b), memo)
+}
+
+func lcsV2Aux(a, b []int, lenA, lenB int, memo [][][]int) []int {
+	if lenA == 0 || lenB == 0 {
+		return []int{}
+	}
+
+	idxA, idxB := lenA-1, lenB-1
+	if memo[idxA][idxB] != nil {
+		return memo[idxA][idxB]
+	}
+
+	if a[idxA] == b[idxB] {
+		memo[idxA][idxB] = append(lcsV2Aux(a, b, lenA-1, lenB-1, memo)[0:], a[idxA])
+	} else {
+		lcs1 := lcsV2Aux(a, b, lenA, lenB-1, memo)
+		lcs2 := lcsV2Aux(a, b, lenA-1, lenB, memo)
+		if len(lcs1) > len(lcs2) {
+			memo[idxA][idxB] = lcs1[0:]
+		} else {
+			memo[idxA][idxB] = lcs2[0:]
+		}
+	}
+
+	return memo[idxA][idxB]
+}

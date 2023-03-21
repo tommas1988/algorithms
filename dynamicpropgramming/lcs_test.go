@@ -2,22 +2,29 @@ package dynamicpropgramming
 
 import "testing"
 
+var A = []int{1, 2, 3, 2, 4, 1, 2}
+var B = []int{2, 4, 3, 1, 2, 1, 2}
+var expected = []int{2, 3, 2, 1, 2}
+
 func TestLcsV1(t *testing.T) {
-	A := []int{1, 2, 3, 2, 4, 1, 2}
-	B := []int{2, 4, 3, 1, 2, 1, 2}
-
-	expected := []int{2, 3, 2, 1, 2}
-
 	lcs := LcsV1(A, B)
+	verifyResult("LcsV1", lcs, t)
+}
 
+func TestLcsV2(t *testing.T) {
+	lcs := LcsV2(A, B)
+	verifyResult("LcsV2", lcs, t)
+}
+
+func verifyResult(function string, lcs []int, t *testing.T) {
 	if len(lcs) != len(expected) {
-		t.Errorf("LcsV1(%v, %v) with result: %v", A, B, lcs)
+		t.Errorf("%s(%v, %v) with result: %v", function, A, B, lcs)
 		return
 	}
 
 	for i, v := range lcs {
 		if v != expected[i] {
-			t.Errorf("LcsV1(%v, %v) with result: %v", A, B, lcs)
+			t.Errorf("%s(%v, %v) with result: %v", function, A, B, lcs)
 			break
 		}
 	}

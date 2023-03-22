@@ -16,6 +16,11 @@ func TestLcsV2(t *testing.T) {
 	verifyResult("LcsV2", lcs, t)
 }
 
+func TestLcsV3(t *testing.T) {
+	lcs := LcsV3(A, B)
+	verifyResult("LcsV3", lcs, t)
+}
+
 func verifyResult(function string, lcs []int, t *testing.T) {
 	if len(lcs) != len(expected) {
 		t.Errorf("%s(%v, %v) with result: %v", function, A, B, lcs)

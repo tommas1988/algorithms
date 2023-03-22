@@ -90,3 +90,51 @@ func lcsV2Aux(a, b []int, lenA, lenB int, memo [][][]int) []int {
 
 	return memo[idxA][idxB]
 }
+
+// Top down algorithm
+// O(n) = len(a) * len(b)
+func LcsV3(a, b []int) []int {
+	// create a extra space with 0 filled up for comparing with a empty sequence.
+	lcsLen := make([][]int, len(a)+1)
+	lcsLen[0] = make([]int, len(b)+1)
+	for i := 0; i < len(a); i += 1 {
+		lcsLen[i+1] = make([]int, len(b)+1)
+
+		for j := 0; j < len(b); j += 1 {
+			if a[i] == b[j] {
+				lcsLen[i+1][j+1] = lcsLen[i][j] + 1
+			} else {
+				// lcsLen[i+1][j] == lcsLen[i][j+1] when a[i] != b[j-1] && a[i-1] != b[j]
+				// lcsLen[i+1][j] > lcsLen[i][j+1] when a[i] == b[j-1]
+				// lcsLen[i+1][j] < lcsLen[i][j+1] when a[i-1] == b[j]
+				if lcsLen[i+1][j] > lcsLen[i][j+1] {
+					lcsLen[i+1][j+1] = lcsLen[i+1][j]
+				} else {
+					lcsLen[i+1][j+1] = lcsLen[i][j+1]
+				}
+			}
+		}
+	}
+
+	lcs := make([]int, lcsLen[len(a)][len(b)])
+	i, j := len(a), len(b)
+	for i > 0 && j > 0 {
+		l := lcsLen[i][j]
+		if a[i-1] == b[j-1] {
+			i -= 1
+			j -= 1
+			lcs[l-1] = a[i]
+		} else {
+			if l > lcsLen[i][j-1] { // b[j] is the common element, decrease index of a
+				i -= 1
+			} else if l > lcsLen[i-1][j] { // a[i] is the common element, decrease index of b
+				j -= 1
+			} else { // no common element for at index of i and j
+				i -= 1
+				j -= 1
+			}
+		}
+	}
+
+	return lcs
+}
